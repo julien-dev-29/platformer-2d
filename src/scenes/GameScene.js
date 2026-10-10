@@ -27,7 +27,7 @@ export default class GameScene extends Phaser.Scene {
     this.passive = null;
     this.choiceOpen = false;
     this.currentWeapon = 'pistol';
-    this.ammoByWeapon = { pistol: 6, shotgun: 2 };
+    this.ammoByWeapon = { pistol: 6 };
     this.blanks = 2;
     this.maxLives = 5;
     this.maxBlanks = 3;
@@ -85,7 +85,7 @@ export default class GameScene extends Phaser.Scene {
     this.blanks = 2;
     // Reset armes (le restart ne repasse pas par le constructor)
     this.currentWeapon = 'pistol';
-    this.ammoByWeapon = { pistol: 6, shotgun: 2 };
+    this.ammoByWeapon = { pistol: 6 };
     this.unlocked = ['pistol'];
     this.passive = null;
     this.choiceOpen = false;
@@ -127,6 +127,11 @@ export default class GameScene extends Phaser.Scene {
     // Coffres à choix : un par salle S1/S2 (S1 ouvert d'emblée, S2 après clear)
     this.loot = this.rooms.loot;
     this.chestOpenedByRoom = {};
+    this.chest = null;
+    this.chestCollider = null;
+    this.choiceBg = null;
+    this.choiceLines = null;
+    this.pendingChoice = null;
     this.spawnChestForRoom(0);
 
     // Ennemis de la salle 1
@@ -177,8 +182,17 @@ export default class GameScene extends Phaser.Scene {
       this.input.off('pointerdown', this.shoot, this);
       if (this.shooterTimer) this.shooterTimer.remove(false);
       if (this.spiralTimer) this.spiralTimer.remove(false);
-      if (this.choiceBg) this.choiceBg.destroy();
-      if (this.choiceLines) this.choiceLines.forEach((t) => t.destroy());
+      if (this.choiceBg) {
+        this.choiceBg.destroy();
+        this.choiceBg = null;
+      }
+      if (this.choiceLines) {
+        this.choiceLines.forEach((t) => t.destroy());
+        this.choiceLines = null;
+      }
+      this.choiceOpen = false;
+      this.pendingChoice = null;
+      this.chestCollider = null;
     });
   }
 
@@ -411,14 +425,21 @@ export default class GameScene extends Phaser.Scene {
   }
 
   spawnChestForRoom(i) {
-    if (this.chest) this.chest.destroy();
+    if (this.chestCollider) {
+      this.physics.world.removeCollider(this.chestCollider);
+      this.chestCollider = null;
+    }
+    if (this.chest) {
+      this.chest.destroy();
+      this.chest = null;
+    }
     if (i > 1) return; // pas de coffre S3 boss
     const W = this.scale.width, H = this.scale.height;
     this.chest = this.physics.add.staticSprite(W / 2, H * 0.62, 'chest');
     this.chestOpened = !!this.chestOpenedByRoom[i];
     if (this.chestOpened) this.chest.setTexture('chestOpen');
     else this.chest.setTexture('chest');
-    this.physics.add.overlap(this.player, this.chest, this.openChest, null, this);
+    this.chestCollider = this.physics.add.overlap(this.player, this.chest, this.openChest, null, this);
   }
 
   openChest() {
@@ -433,6 +454,7 @@ export default class GameScene extends Phaser.Scene {
 
   showChoice(opts) {
     this.choiceOpen = true;
+    if (this.player) this.player.setVelocity(0, 0);
     const W = this.scale.width, H = this.scale.height;
     const cx = W / 2, cy = H / 2;
     this.choiceBg = this.add.rectangle(cx, cy, 520, 200, 0x0a0a18, 0.95).setScrollFactor(0).setDepth(60);
@@ -441,31 +463,42 @@ export default class GameScene extends Phaser.Scene {
       ? `${n}. ${WEAPONS[o.id].name} — ${WEAPONS[o.id].magSize} coups / ${WEAPONS[o.id].cooldown}ms`
       : `${n}. ${PASSIVES[o.id].name} — ${PASSIVES[o.id].desc}`;
     this.choiceLines = [
-      this.add.text(cx, cy - 50, 'COFFRE — choisis [1] ou [2]', { fontSize: '22px', color: '#fde047' }).setOrigin(0.5).setDepth(61),
-      this.add.text(cx, cy - 10, label(opts[0], 1), { fontSize: '20px', color: '#fff' }).setOrigin(0.5).setDepth(61),
-      this.add.text(cx, cy + 25, label(opts[1], 2), { fontSize: '20px', color: '#fff' }).setOrigin(0.5).setDepth(61),
+      this.add.text(cx, cy - 50, 'COFFRE — choisis [1] ou [2]', { fontSize: '22px', color: '#fde047' }).setOrigin(0.5).setScrollFactor(0).setDepth(61),
+      this.add.text(cx, cy - 10, label(opts[0], 1), { fontSize: '20px', color: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(61),
+      this.add.text(cx, cy + 25, label(opts[1], 2), { fontSize: '20px', color: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(61),
     ];
     this.pendingChoice = opts;
   }
 
+  closeChoice() {
+    if (this.choiceBg) {
+      this.choiceBg.destroy();
+      this.choiceBg = null;
+    }
+    if (this.choiceLines) {
+      this.choiceLines.forEach((t) => t.destroy());
+      this.choiceLines = null;
+    }
+    this.choiceOpen = false;
+    this.pendingChoice = null;
+  }
+
   resolveChoice(idx) {
-    const opt = this.pendingChoice[idx];
+    const opt = this.pendingChoice ? this.pendingChoice[idx] : null;
     if (!opt) return;
     if (opt.kind === 'weapon') this.unlockWeapon(opt.id);
     else this.applyPassive(opt.id);
     this.chestOpenedByRoom[this.roomIndex] = true;
     this.chestOpened = true;
-    this.chest.setTexture('chestOpen');
+    if (this.chest) this.chest.setTexture('chestOpen');
     sfx('chest');
-    this.choiceBg.destroy();
-    this.choiceLines.forEach((t) => t.destroy());
-    this.choiceOpen = false;
+    this.closeChoice();
   }
 
   unlockWeapon(id) {
     this.ammoByWeapon[this.currentWeapon] = this.ammo;
     if (!this.unlocked.includes(id)) this.unlocked.push(id);
-    if (!this.ammoByWeapon[id]) this.ammoByWeapon[id] = WEAPONS[id].magSize;
+    if (this.ammoByWeapon[id] === undefined) this.ammoByWeapon[id] = WEAPONS[id].magSize;
     // Si 3 armes débloquées au total, drop la plus ancienne non-courante pour rester à 2 slots :
     while (this.unlocked.length > 2) {
       const drop = this.unlocked.find((u) => u !== this.currentWeapon && u !== id) || this.unlocked.find((u) => u !== id);
@@ -484,7 +517,12 @@ export default class GameScene extends Phaser.Scene {
   applyPassive(id) {
     this.passive = id;
     if (id === 'boots') this.playerSpeed = Math.round(this.playerSpeed * 1.12);
-    if (id === 'heart') { this.maxLives += 1; this.lives = Math.min(this.lives + 1, this.maxLives); this.livesText.setText('Vies: ' + this.lives); }
+    if (id === 'heart') {
+      const cap = metaStats().maxLives + 1;
+      this.maxLives = Math.min(this.maxLives + 1, cap);
+      this.lives = Math.min(this.lives + 1, this.maxLives);
+      this.livesText.setText('Vies: ' + this.lives);
+    }
     this.passiveText.setText(`Passif: ${PASSIVES[id].name}`);
   }
 
@@ -550,7 +588,7 @@ export default class GameScene extends Phaser.Scene {
       b.setData('dmg', st.dmg);
       b.setData('pierce', !!st.pierce);
       b.setData('explode', st.explode || 0);
-      b.setData('hitIds', []);
+      b.setData('hitIds', new Set());
       b.setActive(true).setVisible(true);
       b.setTint(st.tint);
       if (b.body) b.body.allowGravity = false;
@@ -661,6 +699,7 @@ export default class GameScene extends Phaser.Scene {
     this.invincibleUntil = this.time.now + 1000;
     if (this.lives <= 0) {
       this.gameOver = true;
+      this.closeChoice();
       this.physics.pause();
       sfx('lose');
       this.loseText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 120, 'GAME OVER (R pour rejouer)', { fontSize: '28px', color: '#f00' }).setOrigin(0.5).setScrollFactor(0);
@@ -674,6 +713,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   bulletHitEnemy(bullet, enemy) {
+    const dmg = bullet.getData('dmg') || 1;
     const explode = bullet.getData('explode') || 0;
     if (explode > 0) {
       const x = bullet.x, y = bullet.y;
@@ -684,25 +724,28 @@ export default class GameScene extends Phaser.Scene {
       this.enemies.getChildren().forEach((e) => {
         if (!e.active) return;
         if (Phaser.Math.Distance.Between(x, y, e.x, e.y) <= explode) {
-          this.damageEnemy(e, bullet.getData('dmg') || 1);
+          this.damageEnemy(e, dmg);
         }
       });
       return;
     }
     const pierce = bullet.getData('pierce');
     if (pierce) {
-      const hitIds = bullet.getData('hitIds') || [];
-      if (hitIds.includes(enemy)) return;
-      hitIds.push(enemy);
-      bullet.setData('hitIds', hitIds);
+      let hitIds = bullet.getData('hitIds');
+      if (!(hitIds instanceof Set)) {
+        hitIds = new Set();
+        bullet.setData('hitIds', hitIds);
+      }
+      if (hitIds.has(enemy)) return;
+      hitIds.add(enemy);
       sfx('hit');
-      this.damageEnemy(enemy, bullet.getData('dmg') || 1);
+      this.damageEnemy(enemy, dmg);
       return; // ne détruit pas
     }
     bullet.destroy();
     if (!enemy.active) return;
     sfx('hit');
-    this.damageEnemy(enemy, bullet.getData('dmg') || 1);
+    this.damageEnemy(enemy, dmg);
   }
 
   damageEnemy(enemy, dmg = 1) {
@@ -985,6 +1028,7 @@ export default class GameScene extends Phaser.Scene {
     this.invincibleUntil = this.time.now + 1000;
     if (this.lives <= 0) {
       this.gameOver = true;
+      this.closeChoice();
       this.physics.pause();
       sfx('lose');
       this.loseText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 120, 'GAME OVER (R pour rejouer)', { fontSize: '28px', color: '#f00' }).setOrigin(0.5).setScrollFactor(0);

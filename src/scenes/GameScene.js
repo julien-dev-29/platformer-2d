@@ -2,6 +2,7 @@ import Phaser from 'phaser';
 import { initAudio, toggleMute, sfx } from '../sfx.js';
 import { UPGRADES, addShards, buyUpgrade, costOf, levelOf, metaStats } from '../meta.js';
 import { generateRun, seedString } from '../rng.js';
+import { WEAPONS, PASSIVES } from '../weapons.js';
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -21,13 +22,12 @@ export default class GameScene extends Phaser.Scene {
     this.maxEnemyBullets = 130;
     this.patternIndex = 0;
     // Armes : stats par arme, munitions conservées au switch
-    this.weapons = {
-      pistol: { name: 'PISTOLET', magSize: 6, pellets: 1, spread: 0, cooldown: 200, speed: 500, reload: 1000, tint: 0x00eeff },
-      shotgun: { name: 'POMPE', magSize: 2, pellets: 5, spread: 0.36, cooldown: 700, speed: 460, reload: 1600, tint: 0xff9500 },
-    };
+    this.weapons = WEAPONS;
+    this.unlocked = ['pistol'];
+    this.passive = null;
+    this.choiceOpen = false;
     this.currentWeapon = 'pistol';
     this.ammoByWeapon = { pistol: 6, shotgun: 2 };
-    this.shotgunUnlocked = false;
     this.blanks = 2;
     this.maxLives = 5;
     this.maxBlanks = 3;
@@ -86,7 +86,9 @@ export default class GameScene extends Phaser.Scene {
     // Reset armes (le restart ne repasse pas par le constructor)
     this.currentWeapon = 'pistol';
     this.ammoByWeapon = { pistol: 6, shotgun: 2 };
-    this.shotgunUnlocked = false;
+    this.unlocked = ['pistol'];
+    this.passive = null;
+    this.choiceOpen = false;
     this.magSize = 6;
     this.reloadTime = Math.round(1000 * this.reloadMul);
     this.fireCooldown = 200;
@@ -375,7 +377,7 @@ export default class GameScene extends Phaser.Scene {
 
   switchWeapon() {
     if (this.gameOver || this.hasWon || this.reloading) return;
-    if (!this.shotgunUnlocked) return;
+    if (!this.unlocked.includes('shotgun')) return;
     this.ammoByWeapon[this.currentWeapon] = this.ammo;
     this.currentWeapon = this.currentWeapon === 'pistol' ? 'shotgun' : 'pistol';
     const st = this.currentWeaponStats();
@@ -390,7 +392,7 @@ export default class GameScene extends Phaser.Scene {
     if (this.chestOpened || this.gameOver || this.hasWon) return;
     this.chestOpened = true;
     this.chest.setTexture('chestOpen');
-    this.shotgunUnlocked = true;
+    if (!this.unlocked.includes('shotgun')) this.unlocked.push('shotgun');
     sfx('chest');
     // Bascule sur la pompe avec ses stats
     this.ammoByWeapon[this.currentWeapon] = this.ammo;

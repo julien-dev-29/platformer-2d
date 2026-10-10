@@ -122,10 +122,10 @@ export default class GameScene extends Phaser.Scene {
     this.physics.add.existing(this.doorZone, true);
     this.physics.add.overlap(this.player, this.doorZone, this.enterDoor, null, this);
 
-    // Coffre de la pompe, sous le spawn (salle 1)
-    this.chest = this.physics.add.staticSprite(W / 2, H * 0.62, 'chest');
-    this.chestOpened = false;
-    this.physics.add.overlap(this.player, this.chest, this.openChest, null, this);
+    // Coffres à choix : un par salle S1/S2 (S1 ouvert d'emblée, S2 après clear)
+    this.loot = this.rooms.loot;
+    this.chestOpenedByRoom = {};
+    this.spawnChestForRoom(0);
 
     // Ennemis de la salle 1
     this.enemies = this.physics.add.group();
@@ -175,6 +175,8 @@ export default class GameScene extends Phaser.Scene {
       this.input.off('pointerdown', this.shoot, this);
       if (this.shooterTimer) this.shooterTimer.remove(false);
       if (this.spiralTimer) this.spiralTimer.remove(false);
+      if (this.choiceBg) this.choiceBg.destroy();
+      if (this.choiceLines) this.choiceLines.forEach((t) => t.destroy());
     });
   }
 
@@ -202,6 +204,13 @@ export default class GameScene extends Phaser.Scene {
 
   update(time) {
     if (!this.player || !this.player.body) return;
+
+    // Choix coffre : bloque move/shoot pendant le choix
+    if (this.choiceOpen) {
+      if (Phaser.Input.Keyboard.JustDown(this.keysShop.ONE)) this.resolveChoice(0);
+      else if (Phaser.Input.Keyboard.JustDown(this.keysShop.TWO)) this.resolveChoice(1);
+      return;
+    }
 
     // Dérive psychédélique du fond
     if (this.psyOverlay) {
@@ -370,17 +379,19 @@ export default class GameScene extends Phaser.Scene {
   }
 
   syncWeaponHUD() {
-    const st = this.currentWeaponStats();
+    const st = WEAPONS[this.currentWeapon];
+    const backup = this.unlocked.find((u) => u !== this.currentWeapon);
     this.ammoText.setText(`Munitions: ${this.ammo}/${st.magSize}`);
-    this.weaponText.setText(`${st.name} [X]`);
+    this.weaponText.setText(backup ? `${st.name} [X] + ${WEAPONS[backup].name}` : `${st.name} [X]`);
   }
 
   switchWeapon() {
-    if (this.gameOver || this.hasWon || this.reloading) return;
-    if (!this.unlocked.includes('shotgun')) return;
+    if (this.gameOver || this.hasWon || this.reloading || this.choiceOpen) return;
+    if (this.unlocked.length < 2) return;
     this.ammoByWeapon[this.currentWeapon] = this.ammo;
-    this.currentWeapon = this.currentWeapon === 'pistol' ? 'shotgun' : 'pistol';
-    const st = this.currentWeaponStats();
+    const i = this.unlocked.indexOf(this.currentWeapon);
+    this.currentWeapon = this.unlocked[(i + 1) % this.unlocked.length];
+    const st = WEAPONS[this.currentWeapon];
     this.ammo = this.ammoByWeapon[this.currentWeapon];
     this.magSize = st.magSize;
     this.reloadTime = Math.round(st.reload * this.reloadMul);
@@ -388,24 +399,78 @@ export default class GameScene extends Phaser.Scene {
     this.syncWeaponHUD();
   }
 
+  spawnChestForRoom(i) {
+    if (this.chest) this.chest.destroy();
+    if (i > 1) return; // pas de coffre S3 boss
+    const W = this.scale.width, H = this.scale.height;
+    this.chest = this.physics.add.staticSprite(W / 2, H * 0.62, 'chest');
+    this.chestOpened = !!this.chestOpenedByRoom[i];
+    if (this.chestOpened) this.chest.setTexture('chestOpen');
+    else this.chest.setTexture('chest');
+    this.physics.add.overlap(this.player, this.chest, this.openChest, null, this);
+  }
+
   openChest() {
-    if (this.chestOpened || this.gameOver || this.hasWon) return;
+    if (this.chestOpened || this.gameOver || this.hasWon || this.choiceOpen) return;
+    if (this.roomIndex === 1 && !this.doorOpen) return; // S2 verrouillé jusqu'au clear (S1 ouvert d'emblée)
+    // S1: shotgun vs smg, S2: s2weapon vs s2passive
+    const opts = this.roomIndex === 0
+      ? [{kind:'weapon', id:this.loot.s1[0]}, {kind:'weapon', id:this.loot.s1[1]}]
+      : [{kind:'weapon', id:this.loot.s2weapon}, {kind:'passive', id:this.loot.s2passive}];
+    this.showChoice(opts);
+  }
+
+  showChoice(opts) {
+    this.choiceOpen = true;
+    const W = this.scale.width, H = this.scale.height;
+    const cx = W / 2, cy = H / 2;
+    this.choiceBg = this.add.rectangle(cx, cy, 520, 200, 0x0a0a18, 0.95).setScrollFactor(0).setDepth(60);
+    this.choiceBg.setStrokeStyle(2, 0xfde047);
+    const label = (o, n) => o.kind === 'weapon'
+      ? `${n}. ${WEAPONS[o.id].name} — ${WEAPONS[o.id].magSize} coups / ${WEAPONS[o.id].cooldown}ms`
+      : `${n}. ${PASSIVES[o.id].name} — ${PASSIVES[o.id].desc}`;
+    this.choiceLines = [
+      this.add.text(cx, cy - 50, 'COFFRE — choisis [1] ou [2]', { fontSize: '22px', color: '#fde047' }).setOrigin(0.5).setDepth(61),
+      this.add.text(cx, cy - 10, label(opts[0], 1), { fontSize: '20px', color: '#fff' }).setOrigin(0.5).setDepth(61),
+      this.add.text(cx, cy + 25, label(opts[1], 2), { fontSize: '20px', color: '#fff' }).setOrigin(0.5).setDepth(61),
+    ];
+    this.pendingChoice = opts;
+  }
+
+  resolveChoice(idx) {
+    const opt = this.pendingChoice[idx];
+    if (!opt) return;
+    if (opt.kind === 'weapon') this.unlockWeapon(opt.id);
+    else this.applyPassive(opt.id);
+    this.chestOpenedByRoom[this.roomIndex] = true;
     this.chestOpened = true;
     this.chest.setTexture('chestOpen');
-    if (!this.unlocked.includes('shotgun')) this.unlocked.push('shotgun');
     sfx('chest');
-    // Bascule sur la pompe avec ses stats
+    this.choiceBg.destroy();
+    this.choiceLines.forEach((t) => t.destroy());
+    this.choiceOpen = false;
+  }
+
+  unlockWeapon(id) {
     this.ammoByWeapon[this.currentWeapon] = this.ammo;
-    this.currentWeapon = 'shotgun';
-    const st = this.currentWeaponStats();
-    this.ammo = this.ammoByWeapon.shotgun;
+    if (!this.unlocked.includes(id)) this.unlocked.push(id);
+    if (!this.ammoByWeapon[id]) this.ammoByWeapon[id] = WEAPONS[id].magSize;
+    // Si 3 armes débloquées au total, drop la plus ancienne non-courante pour rester à 2 slots :
+    while (this.unlocked.length > 2) {
+      const drop = this.unlocked.find((u) => u !== this.currentWeapon && u !== id) || this.unlocked.find((u) => u !== id);
+      delete this.ammoByWeapon[drop];
+      this.unlocked = this.unlocked.filter((u) => u !== drop);
+    }
+    this.currentWeapon = id;
+    const st = WEAPONS[id];
+    this.ammo = this.ammoByWeapon[id];
     this.magSize = st.magSize;
     this.reloadTime = Math.round(st.reload * this.reloadMul);
     this.fireCooldown = st.cooldown;
     this.syncWeaponHUD();
-    const msg = this.add.text(this.scale.width / 2, this.scale.height / 2 - 60, 'POMPE DÉBLOQUÉE ! (X pour switcher)', { fontSize: '22px', color: '#fdba74' }).setOrigin(0.5).setScrollFactor(0);
-    this.tweens.add({ targets: msg, alpha: 0, duration: 2000, onComplete: () => msg.destroy() });
   }
+
+  applyPassive(id) { this.passive = id; }
 
   fireBlank() {
     if (this.gameOver || this.hasWon) return;
@@ -445,6 +510,7 @@ export default class GameScene extends Phaser.Scene {
 
   shoot(pointer) {
     if (this.gameOver || this.hasWon) return;
+    if (this.choiceOpen) return;
     if (this.physics.world.isPaused) return;
     if (this.reloading) return;
     const st = this.currentWeaponStats();
@@ -864,6 +930,7 @@ export default class GameScene extends Phaser.Scene {
       this.ammoByWeapon[this.currentWeapon] = this.ammo;
       this.syncWeaponHUD();
       this.spawnRoom(this.roomIndex);
+      this.spawnChestForRoom(this.roomIndex);
       this.roomText.setText(`SALLE ${this.roomIndex + 1}/3 · #${this.seedShort}`);
       this.doorOpen = false;
       this.doorText.setVisible(false);

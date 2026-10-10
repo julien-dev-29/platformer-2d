@@ -89,6 +89,7 @@ export default class GameScene extends Phaser.Scene {
     this.unlocked = ['pistol'];
     this.passive = null;
     this.choiceOpen = false;
+    this.playerSpeed = 260;
     this.magSize = 6;
     this.reloadTime = Math.round(1000 * this.reloadMul);
     this.fireCooldown = 200;

@@ -425,7 +425,7 @@ export default class GameScene extends Phaser.Scene {
     this.burst(this.player.x, this.player.y, 0xffffff, 24, 320);
     this.enemyBullets.getChildren().slice().forEach((b) => b.destroy());
     this.enemies.getChildren().slice().forEach((e) => {
-      if (e.active) this.damageEnemy(e);
+      if (e.active) this.damageEnemy(e, 1);
     });
     this.invincibleUntil = this.time.now + 1000;
   }
@@ -464,6 +464,10 @@ export default class GameScene extends Phaser.Scene {
       const off = st.pellets === 1 ? 0 : (i / (st.pellets - 1) - 0.5) * 2 * st.spread + (Math.random() - 0.5) * 0.04;
       const b = this.bullets.create(this.player.x, this.player.y, 'bullet');
       if (!b) continue;
+      b.setData('dmg', st.dmg);
+      b.setData('pierce', !!st.pierce);
+      b.setData('explode', st.explode || 0);
+      b.setData('hitIds', []);
       b.setActive(true).setVisible(true);
       b.setTint(st.tint);
       if (b.body) b.body.allowGravity = false;
@@ -587,15 +591,40 @@ export default class GameScene extends Phaser.Scene {
   }
 
   bulletHitEnemy(bullet, enemy) {
+    const explode = bullet.getData('explode') || 0;
+    if (explode > 0) {
+      const x = bullet.x, y = bullet.y;
+      bullet.destroy();
+      sfx('hit');
+      this.burst(x, y, 0xfde047, 16, 260);
+      this.cameras.main.shake(120, 0.004);
+      this.enemies.getChildren().forEach((e) => {
+        if (!e.active) return;
+        if (Phaser.Math.Distance.Between(x, y, e.x, e.y) <= explode) {
+          this.damageEnemy(e, bullet.getData('dmg') || 1);
+        }
+      });
+      return;
+    }
+    const pierce = bullet.getData('pierce');
+    if (pierce) {
+      const hitIds = bullet.getData('hitIds') || [];
+      if (hitIds.includes(enemy)) return;
+      hitIds.push(enemy);
+      bullet.setData('hitIds', hitIds);
+      sfx('hit');
+      this.damageEnemy(enemy, bullet.getData('dmg') || 1);
+      return; // ne détruit pas
+    }
     bullet.destroy();
     if (!enemy.active) return;
     sfx('hit');
-    this.damageEnemy(enemy);
+    this.damageEnemy(enemy, bullet.getData('dmg') || 1);
   }
 
-  damageEnemy(enemy) {
+  damageEnemy(enemy, dmg = 1) {
     if (!enemy.active || this.hasWon) return;
-    const hp = (enemy.getData('hp') ?? 2) - 1;
+    const hp = (enemy.getData('hp') ?? 2) - dmg;
     const isBoss = enemy.getData('type') === 'boss';
     if (hp <= 0) {
       const ex = enemy.x;

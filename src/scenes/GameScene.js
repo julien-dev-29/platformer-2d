@@ -1,12 +1,19 @@
-import Phaser from 'phaser';
-import { initAudio, toggleMute, sfx } from '../sfx.js';
-import { UPGRADES, addShards, buyUpgrade, costOf, levelOf, metaStats } from '../meta.js';
-import { generateRun, seedString } from '../rng.js';
-import { WEAPONS, PASSIVES } from '../weapons.js';
+import Phaser from "phaser";
+import { initAudio, toggleMute, sfx } from "../sfx.js";
+import {
+  UPGRADES,
+  addShards,
+  buyUpgrade,
+  costOf,
+  levelOf,
+  metaStats,
+} from "../meta.js";
+import { generateRun, seedString } from "../rng.js";
+import { WEAPONS, PASSIVES } from "../weapons.js";
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
-    super('Game');
+    super("Game");
     this.playerSpeed = 260;
     this.bulletSpeed = 500;
     this.fireCooldown = 200;
@@ -23,10 +30,10 @@ export default class GameScene extends Phaser.Scene {
     this.patternIndex = 0;
     // Armes : stats par arme, munitions conservées au switch
     this.weapons = WEAPONS;
-    this.unlocked = ['pistol'];
+    this.unlocked = ["pistol"];
     this.passive = null;
     this.choiceOpen = false;
-    this.currentWeapon = 'pistol';
+    this.currentWeapon = "pistol";
     this.ammoByWeapon = { pistol: 6 };
     this.blanks = 2;
     this.maxLives = 5;
@@ -48,18 +55,30 @@ export default class GameScene extends Phaser.Scene {
     this.hitStopping = false;
 
     // Audio : init au premier geste (autoplay), M = mute
-    this.input.once('pointerdown', initAudio);
-    this.input.keyboard.once('keydown', initAudio);
+    this.input.once("pointerdown", initAudio);
+    this.input.keyboard.once("keydown", initAudio);
 
     // Arène : 4 murs
     this.walls = this.physics.add.staticGroup();
-    this.wallTop = this.walls.create(W / 2, 16, 'ground').setScale(W / 64, 1).refreshBody();
-    this.wallBottom = this.walls.create(W / 2, H - 16, 'ground').setScale(W / 64, 1).refreshBody();
-    this.wallLeft = this.walls.create(16, H / 2, 'ground').setScale(1, H / 32).refreshBody();
-    this.wallRight = this.walls.create(W - 16, H / 2, 'ground').setScale(1, H / 32).refreshBody();
+    this.wallTop = this.walls
+      .create(W / 2, 16, "ground")
+      .setScale(W / 64, 1)
+      .refreshBody();
+    this.wallBottom = this.walls
+      .create(W / 2, H - 16, "ground")
+      .setScale(W / 64, 1)
+      .refreshBody();
+    this.wallLeft = this.walls
+      .create(16, H / 2, "ground")
+      .setScale(1, H / 32)
+      .refreshBody();
+    this.wallRight = this.walls
+      .create(W - 16, H / 2, "ground")
+      .setScale(1, H / 32)
+      .refreshBody();
 
     // Joueur au centre
-    this.player = this.physics.add.sprite(W / 2, H / 2, 'player');
+    this.player = this.physics.add.sprite(W / 2, H / 2, "player");
     this.player.setCollideWorldBounds(true);
     if (this.player.body) this.player.body.allowGravity = false;
     this.physics.add.collider(this.player, this.walls);
@@ -84,9 +103,9 @@ export default class GameScene extends Phaser.Scene {
     this.spiralAngle = 0;
     this.blanks = 2;
     // Reset armes (le restart ne repasse pas par le constructor)
-    this.currentWeapon = 'pistol';
+    this.currentWeapon = "pistol";
     this.ammoByWeapon = { pistol: 6 };
-    this.unlocked = ['pistol'];
+    this.unlocked = ["pistol"];
     this.passive = null;
     this.choiceOpen = false;
     this.playerSpeed = 260;
@@ -105,24 +124,76 @@ export default class GameScene extends Phaser.Scene {
     // Configs des 3 salles générées (positions relatives)
     this.rooms = generateRun(this.seed);
 
-    this.scoreText = this.add.text(16, 36, 'Score: 0', { fontSize: '20px', color: '#fff' }).setScrollFactor(0);
-    this.livesText = this.add.text(16, 62, `Vies: ${this.lives}`, { fontSize: '20px', color: '#fff' }).setScrollFactor(0);
-    this.ammoText = this.add.text(16, 88, `Munitions: 6/6`, { fontSize: '20px', color: '#fff' }).setScrollFactor(0);
-    this.weaponText = this.add.text(16, 114, 'PISTOLET [X]', { fontSize: '20px', color: '#7dd3fc' }).setScrollFactor(0);
-    this.blanksText = this.add.text(16, 140, `Blanks: ${this.blanks} [E]`, { fontSize: '20px', color: '#f0abfc' }).setScrollFactor(0);
-    this.passiveText = this.add.text(16, 166, 'Passif: —', { fontSize: '20px', color: '#a3e635' }).setScrollFactor(0);
-    this.shardsText = this.add.text(W - 16, 62, `◆ ${meta.shards}`, { fontSize: '20px', color: '#fde047' }).setOrigin(1, 0).setScrollFactor(0);
-    this.roomText = this.add.text(W - 16, 36, `SALLE 1/3 · #${this.seedShort}`, { fontSize: '20px', color: '#fdba74' }).setOrigin(1, 0).setScrollFactor(0);
-    this.doorText = this.add.text(W / 2, 52, '↑ PORTE OUVERTE — MONTE ↑', { fontSize: '20px', color: '#4ade80' }).setOrigin(0.5).setVisible(false).setScrollFactor(0);
+    this.scoreText = this.add
+      .text(16, 36, "Score: 0", { fontSize: "20px", color: "#fff" })
+      .setScrollFactor(0);
+    this.livesText = this.add
+      .text(16, 62, `Vies: ${this.lives}`, { fontSize: "20px", color: "#fff" })
+      .setScrollFactor(0);
+    this.ammoText = this.add
+      .text(16, 88, `Munitions: 6/6`, { fontSize: "20px", color: "#fff" })
+      .setScrollFactor(0);
+    this.weaponText = this.add
+      .text(16, 114, "PISTOLET [X]", { fontSize: "20px", color: "#7dd3fc" })
+      .setScrollFactor(0);
+    this.blanksText = this.add
+      .text(16, 140, `Blanks: ${this.blanks} [E]`, {
+        fontSize: "20px",
+        color: "#f0abfc",
+      })
+      .setScrollFactor(0);
+    this.passiveText = this.add
+      .text(16, 166, "Passif: —", { fontSize: "20px", color: "#a3e635" })
+      .setScrollFactor(0);
+    this.shardsText = this.add
+      .text(W - 16, 62, `◆ ${meta.shards}`, {
+        fontSize: "20px",
+        color: "#fde047",
+      })
+      .setOrigin(1, 0)
+      .setScrollFactor(0);
+    this.roomText = this.add
+      .text(W - 16, 36, `SALLE 1/3 · #${this.seedShort}`, {
+        fontSize: "20px",
+        color: "#fdba74",
+      })
+      .setOrigin(1, 0)
+      .setScrollFactor(0);
+    this.doorText = this.add
+      .text(W / 2, 52, "↑ PORTE OUVERTE — MONTE ↑", {
+        fontSize: "20px",
+        color: "#4ade80",
+      })
+      .setOrigin(0.5)
+      .setVisible(false)
+      .setScrollFactor(0);
     // Barre HP du boss (cachée hors S3)
-    this.bossBarBg = this.add.rectangle(W / 2, 22, 324, 16, 0x111111).setOrigin(0.5).setVisible(false).setScrollFactor(0);
-    this.bossBarFill = this.add.rectangle(W / 2 - 160, 22, 320, 12, 0xa855f7).setOrigin(0, 0.5).setVisible(false).setScrollFactor(0);
-    this.bossBarLabel = this.add.text(W / 2, 22, 'GRAND MAGE', { fontSize: '12px', color: '#fff' }).setOrigin(0.5).setVisible(false).setScrollFactor(0);
+    this.bossBarBg = this.add
+      .rectangle(W / 2, 22, 324, 16, 0x111111)
+      .setOrigin(0.5)
+      .setVisible(false)
+      .setScrollFactor(0);
+    this.bossBarFill = this.add
+      .rectangle(W / 2 - 160, 22, 320, 12, 0xa855f7)
+      .setOrigin(0, 0.5)
+      .setVisible(false)
+      .setScrollFactor(0);
+    this.bossBarLabel = this.add
+      .text(W / 2, 22, "GRAND MAGE", { fontSize: "12px", color: "#fff" })
+      .setOrigin(0.5)
+      .setVisible(false)
+      .setScrollFactor(0);
 
     // Zone de porte au mur nord
     this.doorZone = this.add.zone(W / 2, 44, 150, 48);
     this.physics.add.existing(this.doorZone, true);
-    this.physics.add.overlap(this.player, this.doorZone, this.enterDoor, null, this);
+    this.physics.add.overlap(
+      this.player,
+      this.doorZone,
+      this.enterDoor,
+      null,
+      this,
+    );
 
     // Coffres à choix : un par salle S1/S2 (S1 ouvert d'emblée, S2 après clear)
     this.loot = this.rooms.loot;
@@ -138,12 +209,29 @@ export default class GameScene extends Phaser.Scene {
     this.enemies = this.physics.add.group();
     this.spawnRoom(0);
     this.physics.add.collider(this.enemies, this.walls);
-    this.physics.add.overlap(this.player, this.enemies, this.hitEnemy, null, this);
+    this.physics.add.overlap(
+      this.player,
+      this.enemies,
+      this.hitEnemy,
+      null,
+      this,
+    );
 
     // Balles ennemies
-    this.enemyBullets = this.physics.add.group({ allowGravity: false, immovable: true });
-    this.physics.add.collider(this.enemyBullets, this.walls, (b) => b.destroy());
-    this.physics.add.overlap(this.player, this.enemyBullets, this.hitByEnemyBullet, null, this);
+    this.enemyBullets = this.physics.add.group({
+      allowGravity: false,
+      immovable: true,
+    });
+    this.physics.add.collider(this.enemyBullets, this.walls, (b) =>
+      b.destroy(),
+    );
+    this.physics.add.overlap(
+      this.player,
+      this.enemyBullets,
+      this.hitByEnemyBullet,
+      null,
+      this,
+    );
     this.patternIndex = 0;
     this.shooterTimer = this.time.addEvent({
       delay: this.shooterInterval,
@@ -159,27 +247,58 @@ export default class GameScene extends Phaser.Scene {
     });
 
     // Voile psychédélique : teinte dérivante derrière tout
-    this.psyOverlay = this.add.rectangle(0, 0, W, H, 0xff00ff).setOrigin(0).setAlpha(0.07).setDepth(-1);
+    this.psyOverlay = this.add
+      .rectangle(0, 0, W, H, 0xff00ff)
+      .setOrigin(0)
+      .setAlpha(0.07)
+      .setDepth(-1);
 
     // Projectiles vers la souris
-    this.bullets = this.physics.add.group({ allowGravity: false, immovable: true });
-    this.physics.add.collider(this.bullets, this.walls, this.bulletHitWall, null, this);
-    this.physics.add.overlap(this.bullets, this.enemies, this.bulletHitEnemy, null, this);
-    this.input.on('pointerdown', this.shoot, this);
+    this.bullets = this.physics.add.group({
+      allowGravity: false,
+      immovable: true,
+    });
+    this.physics.add.collider(
+      this.bullets,
+      this.walls,
+      this.bulletHitWall,
+      null,
+      this,
+    );
+    this.physics.add.overlap(
+      this.bullets,
+      this.enemies,
+      this.bulletHitEnemy,
+      null,
+      this,
+    );
+    this.input.on("pointerdown", this.shoot, this);
 
     // Contrôles : ZQSD/AZERTY + WASD/QWERTY + souris, R reload, Shift/Espace dodge, E blank, X switch, M son
     this.cursors = this.input.keyboard.createCursorKeys();
-    this.keysWASD = this.input.keyboard.addKeys('W,A,S,D,Z,Q,R,E,X,M,SPACE,SHIFT');
-    this.keysShop = this.input.keyboard.addKeys('ONE,TWO,THREE,FOUR');
+    this.keysWASD = this.input.keyboard.addKeys(
+      "W,A,S,D,Z,Q,R,E,X,M,SPACE,SHIFT",
+    );
+    this.keysShop = this.input.keyboard.addKeys("ONE,TWO,THREE,FOUR");
 
-    this.helpText = this.add.text(16, 16, 'ZQSD/WASD bouger | Clic tirer | R recharger | Shift roulade | E blank | X arme | M son', { fontSize: '14px', color: '#aaa' }).setScrollFactor(0);
-    this.soundText = this.add.text(W - 16, H - 16, '♪ ON [M]', { fontSize: '16px', color: '#aaa' }).setOrigin(1, 1).setScrollFactor(0);
+    this.helpText = this.add
+      .text(
+        16,
+        16,
+        "ZQSD/WASD bouger | Clic tirer | R recharger | Shift roulade | E blank | X arme | M son",
+        { fontSize: "14px", color: "#aaa" },
+      )
+      .setScrollFactor(0);
+    this.soundText = this.add
+      .text(W - 16, H - 16, "♪ ON [M]", { fontSize: "16px", color: "#aaa" })
+      .setOrigin(1, 1)
+      .setScrollFactor(0);
 
-    this.scale.off('resize', this.handleResize, this);
-    this.scale.on('resize', this.handleResize, this);
+    this.scale.off("resize", this.handleResize, this);
+    this.scale.on("resize", this.handleResize, this);
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => {
-      this.scale.off('resize', this.handleResize, this);
-      this.input.off('pointerdown', this.shoot, this);
+      this.scale.off("resize", this.handleResize, this);
+      this.input.off("pointerdown", this.shoot, this);
       if (this.shooterTimer) this.shooterTimer.remove(false);
       if (this.spiralTimer) this.spiralTimer.remove(false);
       if (this.choiceBg) {
@@ -201,10 +320,22 @@ export default class GameScene extends Phaser.Scene {
     const H = gameSize.height;
     this.physics.world.setBounds(0, 0, W, H);
     if (!this.wallTop) return;
-    this.wallTop.setPosition(W / 2, 16).setScale(W / 64, 1).refreshBody();
-    this.wallBottom.setPosition(W / 2, H - 16).setScale(W / 64, 1).refreshBody();
-    this.wallLeft.setPosition(16, H / 2).setScale(1, H / 32).refreshBody();
-    this.wallRight.setPosition(W - 16, H / 2).setScale(1, H / 32).refreshBody();
+    this.wallTop
+      .setPosition(W / 2, 16)
+      .setScale(W / 64, 1)
+      .refreshBody();
+    this.wallBottom
+      .setPosition(W / 2, H - 16)
+      .setScale(W / 64, 1)
+      .refreshBody();
+    this.wallLeft
+      .setPosition(16, H / 2)
+      .setScale(1, H / 32)
+      .refreshBody();
+    this.wallRight
+      .setPosition(W - 16, H / 2)
+      .setScale(1, H / 32)
+      .refreshBody();
     if (this.psyOverlay) this.psyOverlay.setSize(W, H).setPosition(0, 0);
     if (this.doorZone) this.doorZone.setPosition(W / 2, 44);
     if (this.doorText) this.doorText.setPosition(W / 2, 52);
@@ -213,7 +344,8 @@ export default class GameScene extends Phaser.Scene {
     if (this.soundText) this.soundText.setPosition(W - 16, H - 16);
     if (this.passiveText) this.passiveText.setPosition(16, 166);
     if (this.choiceOpen && this.choiceBg && this.choiceLines) {
-      const cx = W / 2, cy = H / 2;
+      const cx = W / 2,
+        cy = H / 2;
       this.choiceBg.setPosition(cx, cy);
       if (this.choiceLines[0]) this.choiceLines[0].setPosition(cx, cy - 50);
       if (this.choiceLines[1]) this.choiceLines[1].setPosition(cx, cy - 10);
@@ -231,8 +363,10 @@ export default class GameScene extends Phaser.Scene {
 
     // Choix coffre : bloque move/shoot pendant le choix
     if (this.choiceOpen) {
-      if (Phaser.Input.Keyboard.JustDown(this.keysShop.ONE)) this.resolveChoice(0);
-      else if (Phaser.Input.Keyboard.JustDown(this.keysShop.TWO)) this.resolveChoice(1);
+      if (Phaser.Input.Keyboard.JustDown(this.keysShop.ONE))
+        this.resolveChoice(0);
+      else if (Phaser.Input.Keyboard.JustDown(this.keysShop.TWO))
+        this.resolveChoice(1);
       return;
     }
 
@@ -246,9 +380,15 @@ export default class GameScene extends Phaser.Scene {
     if (!this.isDodging) {
       let vx = 0;
       let vy = 0;
-      const up = this.cursors.up.isDown || this.keysWASD.W.isDown || this.keysWASD.Z.isDown;
+      const up =
+        this.cursors.up.isDown ||
+        this.keysWASD.W.isDown ||
+        this.keysWASD.Z.isDown;
       const down = this.cursors.down.isDown || this.keysWASD.S.isDown;
-      const left = this.cursors.left.isDown || this.keysWASD.A.isDown || this.keysWASD.Q.isDown;
+      const left =
+        this.cursors.left.isDown ||
+        this.keysWASD.A.isDown ||
+        this.keysWASD.Q.isDown;
       const right = this.cursors.right.isDown || this.keysWASD.D.isDown;
       if (left) vx -= 1;
       if (right) vx += 1;
@@ -276,7 +416,12 @@ export default class GameScene extends Phaser.Scene {
     // Vise la souris
     const pointer = this.input.activePointer;
     if (pointer) {
-      this.player.setRotation(Math.atan2(pointer.worldY - this.player.y, pointer.worldX - this.player.x));
+      this.player.setRotation(
+        Math.atan2(
+          pointer.worldY - this.player.y,
+          pointer.worldX - this.player.x,
+        ),
+      );
     }
 
     // Reload manuel (ou restart si partie finie)
@@ -301,12 +446,17 @@ export default class GameScene extends Phaser.Scene {
     // Mute (M)
     if (Phaser.Input.Keyboard.JustDown(this.keysWASD.M)) {
       const muted = toggleMute();
-      this.soundText.setText(muted ? '♪ OFF [M]' : '♪ ON [M]');
+      this.soundText.setText(muted ? "♪ OFF [M]" : "♪ ON [M]");
     }
 
     // Boutique : touches 1-4 (uniquement sur écran de fin)
     if (this.shopOpen) {
-      const numKeys = [this.keysShop.ONE, this.keysShop.TWO, this.keysShop.THREE, this.keysShop.FOUR];
+      const numKeys = [
+        this.keysShop.ONE,
+        this.keysShop.TWO,
+        this.keysShop.THREE,
+        this.keysShop.FOUR,
+      ];
       numKeys.forEach((k, i) => {
         if (k && Phaser.Input.Keyboard.JustDown(k)) this.buyFromShop(i);
       });
@@ -315,16 +465,26 @@ export default class GameScene extends Phaser.Scene {
     // Chasers foncent, tireurs fixes, boss en dérive lente
     this.enemies.getChildren().forEach((e) => {
       if (!e.active || !e.body) return;
-      const t = e.getData('type');
-      if (t === 'shooter') {
+      const t = e.getData("type");
+      if (t === "shooter") {
         e.setVelocity(0, 0);
         return;
       }
-      if (t === 'boss') {
-        this.physics.moveTo(e, this.player.x, this.player.y, (e.getData('phase') ?? 1) === 3 ? 55 : 35);
+      if (t === "boss") {
+        this.physics.moveTo(
+          e,
+          this.player.x,
+          this.player.y,
+          (e.getData("phase") ?? 1) === 3 ? 55 : 35,
+        );
         return;
       }
-      this.physics.moveTo(e, this.player.x, this.player.y, e.getData('speed') ?? 100);
+      this.physics.moveTo(
+        e,
+        this.player.x,
+        this.player.y,
+        e.getData("speed") ?? 100,
+      );
     });
 
     // Nettoie les projectiles hors écran
@@ -345,26 +505,36 @@ export default class GameScene extends Phaser.Scene {
   }
 
   burst(x, y, tint, n = 12, speed = 220) {
-    const p = this.add.particles(x, y, 'spark', {
+    const p = this.add.particles(x, y, "spark", {
       speed: { min: speed * 0.35, max: speed },
       lifespan: 420,
       quantity: n,
       scale: { start: 1.4, end: 0 },
       tint,
-      blendMode: 'ADD',
+      blendMode: "ADD",
       emitting: false,
     });
     p.explode(n, x, y);
     this.time.delayedCall(650, () => p.destroy());
   }
 
-  floatText(x, y, str, color = '#fde047') {
-    const t = this.add.text(x, y - 12, str, { fontSize: '18px', color }).setOrigin(0.5).setScrollFactor(0);
-    this.tweens.add({ targets: t, y: y - 44, alpha: 0, duration: 750, onComplete: () => t.destroy() });
+  floatText(x, y, str, color = "#fde047") {
+    const t = this.add
+      .text(x, y - 12, str, { fontSize: "18px", color })
+      .setOrigin(0.5)
+      .setScrollFactor(0);
+    this.tweens.add({
+      targets: t,
+      y: y - 44,
+      alpha: 0,
+      duration: 750,
+      onComplete: () => t.destroy(),
+    });
   }
 
   hitStop(ms) {
-    if (this.hasWon || this.gameOver || this.transitioning || this.hitStopping) return;
+    if (this.hasWon || this.gameOver || this.transitioning || this.hitStopping)
+      return;
     this.hitStopping = true;
     this.physics.pause();
     this.time.delayedCall(ms, () => {
@@ -378,7 +548,7 @@ export default class GameScene extends Phaser.Scene {
     this.dangerSlow = on;
     this.time.timeScale = on ? 0.55 : 1;
     this.physics.world.timeScale = on ? 0.55 : 1;
-    this.livesText.setColor(on ? '#ef4444' : '#ffffff');
+    this.livesText.setColor(on ? "#ef4444" : "#ffffff");
   }
 
   startDodge(dx, dy, time) {
@@ -386,7 +556,7 @@ export default class GameScene extends Phaser.Scene {
     if (this.isDodging || this.gameOver || this.hasWon) return;
     this.isDodging = true;
     this.dashHit = new Set();
-    sfx('dodge');
+    sfx("dodge");
     this.invincibleUntil = (time ?? this.time.now) + this.dodgeInvincibleTime;
     this.player.setVelocity(dx * this.dodgeSpeed, dy * this.dodgeSpeed);
     this.player.setAlpha(0.5);
@@ -407,11 +577,14 @@ export default class GameScene extends Phaser.Scene {
     const st = WEAPONS[this.currentWeapon];
     const backup = this.unlocked.find((u) => u !== this.currentWeapon);
     this.ammoText.setText(`Munitions: ${this.ammo}/${st.magSize}`);
-    this.weaponText.setText(backup ? `${st.name} [X] + ${WEAPONS[backup].name}` : `${st.name} [X]`);
+    this.weaponText.setText(
+      backup ? `${st.name} [X] + ${WEAPONS[backup].name}` : `${st.name} [X]`,
+    );
   }
 
   switchWeapon() {
-    if (this.gameOver || this.hasWon || this.reloading || this.choiceOpen) return;
+    if (this.gameOver || this.hasWon || this.reloading || this.choiceOpen)
+      return;
     if (this.unlocked.length < 2) return;
     this.ammoByWeapon[this.currentWeapon] = this.ammo;
     const i = this.unlocked.indexOf(this.currentWeapon);
@@ -434,38 +607,80 @@ export default class GameScene extends Phaser.Scene {
       this.chest = null;
     }
     if (i > 1) return; // pas de coffre S3 boss
-    const W = this.scale.width, H = this.scale.height;
-    this.chest = this.physics.add.staticSprite(W / 2, H * 0.62, 'chest');
+    const W = this.scale.width,
+      H = this.scale.height;
+    this.chest = this.physics.add.staticSprite(W / 2, H * 0.62, "chest");
     this.chestOpened = !!this.chestOpenedByRoom[i];
-    if (this.chestOpened) this.chest.setTexture('chestOpen');
-    else this.chest.setTexture('chest');
-    this.chestCollider = this.physics.add.overlap(this.player, this.chest, this.openChest, null, this);
+    if (this.chestOpened) this.chest.setTexture("chestOpen");
+    else this.chest.setTexture("chest");
+    this.chestCollider = this.physics.add.overlap(
+      this.player,
+      this.chest,
+      this.openChest,
+      null,
+      this,
+    );
   }
 
   openChest() {
-    if (this.chestOpened || this.gameOver || this.hasWon || this.choiceOpen) return;
+    if (this.chestOpened || this.gameOver || this.hasWon || this.choiceOpen)
+      return;
     if (this.roomIndex === 1 && !this.doorOpen) return; // S2 verrouillé jusqu'au clear (S1 ouvert d'emblée)
     // S1: shotgun vs smg, S2: s2weapon vs s2passive
-    const opts = this.roomIndex === 0
-      ? [{kind:'weapon', id:this.loot.s1[0]}, {kind:'weapon', id:this.loot.s1[1]}]
-      : [{kind:'weapon', id:this.loot.s2weapon}, {kind:'passive', id:this.loot.s2passive}];
+    const opts =
+      this.roomIndex === 0
+        ? [
+            { kind: "weapon", id: this.loot.s1[0] },
+            { kind: "weapon", id: this.loot.s1[1] },
+          ]
+        : [
+            { kind: "weapon", id: this.loot.s2weapon },
+            { kind: "passive", id: this.loot.s2passive },
+          ];
     this.showChoice(opts);
   }
 
   showChoice(opts) {
     this.choiceOpen = true;
     if (this.player) this.player.setVelocity(0, 0);
-    const W = this.scale.width, H = this.scale.height;
-    const cx = W / 2, cy = H / 2;
-    this.choiceBg = this.add.rectangle(cx, cy, 520, 200, 0x0a0a18, 0.95).setScrollFactor(0).setDepth(60);
+    const W = this.scale.width,
+      H = this.scale.height;
+    const cx = W / 2,
+      cy = H / 2;
+    this.choiceBg = this.add
+      .rectangle(cx, cy, 520, 200, 0x0a0a18, 0.95)
+      .setScrollFactor(0)
+      .setDepth(60);
     this.choiceBg.setStrokeStyle(2, 0xfde047);
-    const label = (o, n) => o.kind === 'weapon'
-      ? `${n}. ${WEAPONS[o.id].name} — ${WEAPONS[o.id].magSize} coups / ${WEAPONS[o.id].cooldown}ms`
-      : `${n}. ${PASSIVES[o.id].name} — ${PASSIVES[o.id].desc}`;
+    const label = (o, n) =>
+      o.kind === "weapon"
+        ? `${n}. ${WEAPONS[o.id].name} — ${WEAPONS[o.id].magSize} coups / ${WEAPONS[o.id].cooldown}ms`
+        : `${n}. ${PASSIVES[o.id].name} — ${PASSIVES[o.id].desc}`;
     this.choiceLines = [
-      this.add.text(cx, cy - 50, 'COFFRE — choisis [1] ou [2]', { fontSize: '22px', color: '#fde047' }).setOrigin(0.5).setScrollFactor(0).setDepth(61),
-      this.add.text(cx, cy - 10, label(opts[0], 1), { fontSize: '20px', color: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(61),
-      this.add.text(cx, cy + 25, label(opts[1], 2), { fontSize: '20px', color: '#fff' }).setOrigin(0.5).setScrollFactor(0).setDepth(61),
+      this.add
+        .text(cx, cy - 50, "COFFRE — choisis [1] ou [2]", {
+          fontSize: "22px",
+          color: "#fde047",
+        })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(61),
+      this.add
+        .text(cx, cy - 10, label(opts[0], 1), {
+          fontSize: "20px",
+          color: "#fff",
+        })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(61),
+      this.add
+        .text(cx, cy + 25, label(opts[1], 2), {
+          fontSize: "20px",
+          color: "#fff",
+        })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(61),
     ];
     this.pendingChoice = opts;
   }
@@ -486,22 +701,25 @@ export default class GameScene extends Phaser.Scene {
   resolveChoice(idx) {
     const opt = this.pendingChoice ? this.pendingChoice[idx] : null;
     if (!opt) return;
-    if (opt.kind === 'weapon') this.unlockWeapon(opt.id);
+    if (opt.kind === "weapon") this.unlockWeapon(opt.id);
     else this.applyPassive(opt.id);
     this.chestOpenedByRoom[this.roomIndex] = true;
     this.chestOpened = true;
-    if (this.chest) this.chest.setTexture('chestOpen');
-    sfx('chest');
+    if (this.chest) this.chest.setTexture("chestOpen");
+    sfx("chest");
     this.closeChoice();
   }
 
   unlockWeapon(id) {
     this.ammoByWeapon[this.currentWeapon] = this.ammo;
     if (!this.unlocked.includes(id)) this.unlocked.push(id);
-    if (this.ammoByWeapon[id] === undefined) this.ammoByWeapon[id] = WEAPONS[id].magSize;
+    if (this.ammoByWeapon[id] === undefined)
+      this.ammoByWeapon[id] = WEAPONS[id].magSize;
     // Si 3 armes débloquées au total, drop la plus ancienne non-courante pour rester à 2 slots :
     while (this.unlocked.length > 2) {
-      const drop = this.unlocked.find((u) => u !== this.currentWeapon && u !== id) || this.unlocked.find((u) => u !== id);
+      const drop =
+        this.unlocked.find((u) => u !== this.currentWeapon && u !== id) ||
+        this.unlocked.find((u) => u !== id);
       delete this.ammoByWeapon[drop];
       this.unlocked = this.unlocked.filter((u) => u !== drop);
     }
@@ -516,12 +734,12 @@ export default class GameScene extends Phaser.Scene {
 
   applyPassive(id) {
     this.passive = id;
-    if (id === 'boots') this.playerSpeed = Math.round(this.playerSpeed * 1.12);
-    if (id === 'heart') {
+    if (id === "boots") this.playerSpeed = Math.round(this.playerSpeed * 1.12);
+    if (id === "heart") {
       const cap = metaStats().maxLives + 1;
       this.maxLives = Math.min(this.maxLives + 1, cap);
       this.lives = Math.min(this.lives + 1, this.maxLives);
-      this.livesText.setText('Vies: ' + this.lives);
+      this.livesText.setText("Vies: " + this.lives);
     }
     this.passiveText.setText(`Passif: ${PASSIVES[id].name}`);
   }
@@ -531,35 +749,66 @@ export default class GameScene extends Phaser.Scene {
     if (this.gameOver || this.hasWon) return;
     if (this.physics.world.isPaused) return;
     if (this.blanks <= 0) {
-      this.tweens.add({ targets: this.blanksText, alpha: 0.2, duration: 90, yoyo: true, repeat: 3, onComplete: () => this.blanksText.setAlpha(1) });
+      this.tweens.add({
+        targets: this.blanksText,
+        alpha: 0.2,
+        duration: 90,
+        yoyo: true,
+        repeat: 3,
+        onComplete: () => this.blanksText.setAlpha(1),
+      });
       return;
     }
     this.blanks -= 1;
     this.blanksText.setText(`Blanks: ${this.blanks} [E]`);
     // Effet : flash + onde + shake, tout est effacé
-    sfx('blank');
+    sfx("blank");
     this.cameras.main.flash(180, 255, 255, 255);
     this.cameras.main.shake(200, 0.006);
-    const ring = this.add.circle(this.player.x, this.player.y, 10, 0xffffff, 0.6);
-    this.tweens.add({ targets: ring, radius: Math.max(this.scale.width, this.scale.height), alpha: 0, duration: 450, onComplete: () => ring.destroy() });
-    this.burst(this.player.x, this.player.y, 0xffffff, 24, 320);
-    this.enemyBullets.getChildren().slice().forEach((b) => b.destroy());
-    this.enemies.getChildren().slice().forEach((e) => {
-      if (e.active) this.damageEnemy(e, 1);
+    const ring = this.add.circle(
+      this.player.x,
+      this.player.y,
+      10,
+      0xffffff,
+      0.6,
+    );
+    this.tweens.add({
+      targets: ring,
+      radius: Math.max(this.scale.width, this.scale.height),
+      alpha: 0,
+      duration: 450,
+      onComplete: () => ring.destroy(),
     });
+    this.burst(this.player.x, this.player.y, 0xffffff, 24, 320);
+    this.enemyBullets
+      .getChildren()
+      .slice()
+      .forEach((b) => b.destroy());
+    this.enemies
+      .getChildren()
+      .slice()
+      .forEach((e) => {
+        if (e.active) this.damageEnemy(e, 1);
+      });
     this.invincibleUntil = this.time.now + 1000;
   }
 
   startReload() {
-    if (this.reloading || this.ammo === this.magSize || this.gameOver || this.hasWon) return;
+    if (
+      this.reloading ||
+      this.ammo === this.magSize ||
+      this.gameOver ||
+      this.hasWon
+    )
+      return;
     this.reloading = true;
-    this.ammoText.setText('RECHARGEMENT...');
+    this.ammoText.setText("RECHARGEMENT...");
     this.time.delayedCall(this.reloadTime, () => {
       this.reloading = false;
       this.ammo = this.magSize;
       this.ammoByWeapon[this.currentWeapon] = this.ammo;
       this.ammoText.setText(`Munitions: ${this.ammo}/${this.magSize}`);
-      sfx('reload');
+      sfx("reload");
     });
   }
 
@@ -580,26 +829,43 @@ export default class GameScene extends Phaser.Scene {
     this.ammoByWeapon[this.currentWeapon] = this.ammo;
     this.ammoText.setText(`Munitions: ${this.ammo}/${st.magSize}`);
 
-    const base = Math.atan2(pointer.worldY - this.player.y, pointer.worldX - this.player.x);
+    const base = Math.atan2(
+      pointer.worldY - this.player.y,
+      pointer.worldX - this.player.x,
+    );
     for (let i = 0; i < st.pellets; i += 1) {
-      const off = st.pellets === 1 ? 0 : (i / (st.pellets - 1) - 0.5) * 2 * st.spread + (Math.random() - 0.5) * 0.04;
-      const b = this.bullets.create(this.player.x, this.player.y, 'bullet');
+      const off =
+        st.pellets === 1
+          ? 0
+          : (i / (st.pellets - 1) - 0.5) * 2 * st.spread +
+            (Math.random() - 0.5) * 0.04;
+      const b = this.bullets.create(this.player.x, this.player.y, "bullet");
       if (!b) continue;
-      b.setData('dmg', st.dmg);
-      b.setData('pierce', !!st.pierce);
-      b.setData('explode', st.explode || 0);
-      b.setData('hitIds', new Set());
+      b.setData("dmg", st.dmg);
+      b.setData("pierce", !!st.pierce);
+      b.setData("explode", st.explode || 0);
+      b.setData("hitIds", new Set());
       b.setActive(true).setVisible(true);
       b.setTint(st.tint);
       if (b.body) b.body.allowGravity = false;
       this.physics.velocityFromRotation(base + off, st.speed, b.body.velocity);
     }
-    sfx(this.currentWeapon === 'shotgun' ? 'shotgun' : 'shoot');
+    sfx(this.currentWeapon === "shotgun" ? "shotgun" : "shoot");
     // Muzzle flash au bout du canon
     const mx = this.player.x + Math.cos(base) * 22;
     const my = this.player.y + Math.sin(base) * 22;
-    const flash = this.add.image(mx, my, 'spark').setTint(st.tint).setBlendMode(Phaser.BlendModes.ADD).setScale(2.2);
-    this.tweens.add({ targets: flash, alpha: 0, scale: 0.4, duration: 60, onComplete: () => flash.destroy() });
+    const flash = this.add
+      .image(mx, my, "spark")
+      .setTint(st.tint)
+      .setBlendMode(Phaser.BlendModes.ADD)
+      .setScale(2.2);
+    this.tweens.add({
+      targets: flash,
+      alpha: 0,
+      scale: 0.4,
+      duration: 60,
+      onComplete: () => flash.destroy(),
+    });
 
     if (this.ammo <= 0) this.startReload();
   }
@@ -607,8 +873,8 @@ export default class GameScene extends Phaser.Scene {
   activeShooters() {
     return this.enemies.getChildren().filter((e) => {
       if (!e.active) return false;
-      const t = e.getData('type');
-      return t === 'shooter' || t === 'boss';
+      const t = e.getData("type");
+      return t === "shooter" || t === "boss";
     });
   }
 
@@ -617,24 +883,30 @@ export default class GameScene extends Phaser.Scene {
     if (this.physics.world.isPaused) return;
     this.activeShooters().forEach((s) => {
       // Pulse télégraphié avant la salve
-      this.tweens.add({ targets: s, scaleX: '+=0.25', scaleY: '+=0.25', duration: 120, yoyo: true });
-      const isBoss = s.getData('type') === 'boss';
-      const phase = s.getData('phase') ?? 1;
+      this.tweens.add({
+        targets: s,
+        scaleX: "+=0.25",
+        scaleY: "+=0.25",
+        duration: 120,
+        yoyo: true,
+      });
+      const isBoss = s.getData("type") === "boss";
+      const phase = s.getData("phase") ?? 1;
       // P1 du boss : visé + salve uniquement
       const mod = isBoss && phase === 1 ? 2 : 3;
-      const counter = s.getData('pattern') ?? 0;
+      const counter = s.getData("pattern") ?? 0;
       const pi = counter % mod;
       if (pi === 0) this.fireAimed(s);
       else if (pi === 1) this.fireSpread(s);
       else this.fireRing(s, isBoss && phase === 3);
-      s.setData('pattern', counter + 1);
+      s.setData("pattern", counter + 1);
     });
   }
 
   spawnEnemyBullet(source, angle, speed, tint) {
     const kids = this.enemyBullets.getChildren();
     if (kids.length >= this.maxEnemyBullets) kids[0].destroy();
-    const b = this.enemyBullets.create(source.x, source.y, 'enemyBullet');
+    const b = this.enemyBullets.create(source.x, source.y, "enemyBullet");
     if (!b) return;
     b.setActive(true).setVisible(true);
     b.setBlendMode(Phaser.BlendModes.ADD);
@@ -650,7 +922,9 @@ export default class GameScene extends Phaser.Scene {
 
   fireSpread(s) {
     const base = Math.atan2(this.player.y - s.y, this.player.x - s.x);
-    [-0.26, 0, 0.26].forEach((off) => this.spawnEnemyBullet(s, base + off, 190, 0xffee00));
+    [-0.26, 0, 0.26].forEach((off) =>
+      this.spawnEnemyBullet(s, base + off, 190, 0xffee00),
+    );
   }
 
   fireRing(s, dense) {
@@ -659,11 +933,21 @@ export default class GameScene extends Phaser.Scene {
       this.spawnEnemyBullet(s, (i / n) * Math.PI * 2, 150, 0xff33cc);
     }
     for (let i = 0; i < n; i += 1) {
-      this.spawnEnemyBullet(s, (i / n) * Math.PI * 2 + Math.PI / n, 150, 0x66ff66);
+      this.spawnEnemyBullet(
+        s,
+        (i / n) * Math.PI * 2 + Math.PI / n,
+        150,
+        0x66ff66,
+      );
     }
     if (dense) {
       for (let i = 0; i < n; i += 1) {
-        this.spawnEnemyBullet(s, (i / n) * Math.PI * 2 + Math.PI / (n * 2), 190, 0xffee00);
+        this.spawnEnemyBullet(
+          s,
+          (i / n) * Math.PI * 2 + Math.PI / (n * 2),
+          190,
+          0xffee00,
+        );
       }
     }
     this.cameras.main.shake(120, 0.004);
@@ -673,13 +957,19 @@ export default class GameScene extends Phaser.Scene {
     if (this.gameOver || this.hasWon || this.transitioning) return;
     if (this.physics.world.isPaused) return;
     this.activeShooters().forEach((s) => {
-      const isBossP3 = s.getData('type') === 'boss' && (s.getData('phase') ?? 1) === 3;
+      const isBossP3 =
+        s.getData("type") === "boss" && (s.getData("phase") ?? 1) === 3;
       const arms = isBossP3 ? 4 : 2;
-      const a = s.getData('spiral') ?? Math.random() * Math.PI * 2;
+      const a = s.getData("spiral") ?? Math.random() * Math.PI * 2;
       for (let k = 0; k < arms; k += 1) {
-        this.spawnEnemyBullet(s, a + (k * Math.PI * 2) / arms, 150, k % 2 === 0 ? 0x99ff33 : 0x33ff99);
+        this.spawnEnemyBullet(
+          s,
+          a + (k * Math.PI * 2) / arms,
+          150,
+          k % 2 === 0 ? 0x99ff33 : 0x33ff99,
+        );
       }
-      s.setData('spiral', a + 0.35);
+      s.setData("spiral", a + 0.35);
     });
   }
 
@@ -688,12 +978,12 @@ export default class GameScene extends Phaser.Scene {
     if (this.gameOver || this.hasWon) return;
     if (this.time.now < this.invincibleUntil) return;
     this.lives -= 1;
-    this.livesText.setText('Vies: ' + this.lives);
+    this.livesText.setText("Vies: " + this.lives);
     this.player.setTint(0xff0000).setTintMode(Phaser.TintModes.FILL);
     this.time.delayedCall(150, () => {
       if (this.player.active) this.player.clearTint();
     });
-    sfx('playerHurt');
+    sfx("playerHurt");
     this.burst(this.player.x, this.player.y, 0xff3333, 8, 180);
     this.setDanger(this.lives === 1);
     this.invincibleUntil = this.time.now + 1000;
@@ -701,8 +991,16 @@ export default class GameScene extends Phaser.Scene {
       this.gameOver = true;
       this.closeChoice();
       this.physics.pause();
-      sfx('lose');
-      this.loseText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 120, 'GAME OVER (R pour rejouer)', { fontSize: '28px', color: '#f00' }).setOrigin(0.5).setScrollFactor(0);
+      sfx("lose");
+      this.loseText = this.add
+        .text(
+          this.scale.width / 2,
+          this.scale.height / 2 - 120,
+          "GAME OVER (R pour rejouer)",
+          { fontSize: "28px", color: "#f00" },
+        )
+        .setOrigin(0.5)
+        .setScrollFactor(0);
       this.creditRun();
       this.showShop();
     }
@@ -713,12 +1011,13 @@ export default class GameScene extends Phaser.Scene {
   }
 
   bulletHitEnemy(bullet, enemy) {
-    const dmg = bullet.getData('dmg') || 1;
-    const explode = bullet.getData('explode') || 0;
+    const dmg = bullet.getData("dmg") || 1;
+    const explode = bullet.getData("explode") || 0;
     if (explode > 0) {
-      const x = bullet.x, y = bullet.y;
+      const x = bullet.x,
+        y = bullet.y;
       bullet.destroy();
-      sfx('hit');
+      sfx("hit");
       this.burst(x, y, 0xfde047, 16, 260);
       this.cameras.main.shake(120, 0.004);
       this.enemies.getChildren().forEach((e) => {
@@ -729,51 +1028,57 @@ export default class GameScene extends Phaser.Scene {
       });
       return;
     }
-    const pierce = bullet.getData('pierce');
+    const pierce = bullet.getData("pierce");
     if (pierce) {
-      let hitIds = bullet.getData('hitIds');
+      let hitIds = bullet.getData("hitIds");
       if (!(hitIds instanceof Set)) {
         hitIds = new Set();
-        bullet.setData('hitIds', hitIds);
+        bullet.setData("hitIds", hitIds);
       }
       if (hitIds.has(enemy)) return;
       hitIds.add(enemy);
-      sfx('hit');
+      sfx("hit");
       this.damageEnemy(enemy, dmg);
       return; // ne détruit pas
     }
     bullet.destroy();
     if (!enemy.active) return;
-    sfx('hit');
+    sfx("hit");
     this.damageEnemy(enemy, dmg);
   }
 
   damageEnemy(enemy, dmg = 1) {
     if (!enemy.active || this.hasWon) return;
     let final = dmg;
-    if (this.passive === 'crit' && Math.random() < 0.15) {
+    if (this.passive === "crit" && Math.random() < 0.15) {
       final = dmg * 2;
-      this.floatText(enemy.x, enemy.y, 'CRIT', '#fde047');
+      this.floatText(enemy.x, enemy.y, "CRIT", "#fde047");
     }
-    const hp = (enemy.getData('hp') ?? 2) - final;
-    const isBoss = enemy.getData('type') === 'boss';
+    const hp = (enemy.getData("hp") ?? 2) - final;
+    const isBoss = enemy.getData("type") === "boss";
     if (hp <= 0) {
       const ex = enemy.x;
       const ey = enemy.y;
       enemy.destroy();
       const bonus = isBoss ? 500 : 50;
       this.score += bonus;
-      this.scoreText.setText('Score: ' + this.score);
-      sfx('enemyDie');
-      this.burst(ex, ey, isBoss ? 0xc084fc : 0xff6666, isBoss ? 26 : 12, isBoss ? 320 : 220);
-      this.floatText(ex, ey, `+${bonus}`, isBoss ? '#c084fc' : '#fde047');
+      this.scoreText.setText("Score: " + this.score);
+      sfx("enemyDie");
+      this.burst(
+        ex,
+        ey,
+        isBoss ? 0xc084fc : 0xff6666,
+        isBoss ? 26 : 12,
+        isBoss ? 320 : 220,
+      );
+      this.floatText(ex, ey, `+${bonus}`, isBoss ? "#c084fc" : "#fde047");
       this.hitStop(isBoss ? 150 : 60);
       if (isBoss) this.hideBossBar();
       if (this.enemies.countActive(true) === 0 && !this.hasWon) {
         this.onRoomCleared();
       }
     } else {
-      enemy.setData('hp', hp);
+      enemy.setData("hp", hp);
       enemy.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
       this.time.delayedCall(150, () => {
         if (!enemy.active) return;
@@ -789,35 +1094,53 @@ export default class GameScene extends Phaser.Scene {
   }
 
   applyBossTint(enemy) {
-    const phase = enemy.getData('phase') ?? 1;
+    const phase = enemy.getData("phase") ?? 1;
     if (phase === 1) return;
     enemy.setTint(this.bossPhaseColor(phase));
   }
 
   checkBossPhase(enemy, hp) {
-    const maxHP = enemy.getData('maxHP') ?? hp;
+    const maxHP = enemy.getData("maxHP") ?? hp;
     const frac = hp / maxHP;
     const newPhase = frac > 0.66 ? 1 : frac > 0.33 ? 2 : 3;
-    if (newPhase === (enemy.getData('phase') ?? 1)) {
+    if (newPhase === (enemy.getData("phase") ?? 1)) {
       this.updateBossBar();
       return;
     }
-    enemy.setData('phase', newPhase);
+    enemy.setData("phase", newPhase);
     // Annonce + renfort, sans flash caméra
-    sfx('phase');
+    sfx("phase");
     this.cameras.main.shake(180, 0.005);
-    const label = newPhase === 2 ? 'PHASE 2 — IL S\'ÉNERVE !' : 'PHASE 3 — DÉLUGE !';
-    const msg = this.add.text(this.scale.width / 2, this.scale.height / 2 - 100, label, { fontSize: '24px', color: '#f87171' }).setOrigin(0.5).setScrollFactor(0);
-    this.tweens.add({ targets: msg, alpha: 0, duration: 1800, onComplete: () => msg.destroy() });
+    const label =
+      newPhase === 2 ? "PHASE 2 — IL S'ÉNERVE !" : "PHASE 3 — DÉLUGE !";
+    const msg = this.add
+      .text(this.scale.width / 2, this.scale.height / 2 - 100, label, {
+        fontSize: "24px",
+        color: "#f87171",
+      })
+      .setOrigin(0.5)
+      .setScrollFactor(0);
+    this.tweens.add({
+      targets: msg,
+      alpha: 0,
+      duration: 1800,
+      onComplete: () => msg.destroy(),
+    });
     // Renfort chaser (plafonné à 4)
-    const chasers = this.enemies.getChildren().filter((e) => e.active && e.getData('type') === 'chaser');
+    const chasers = this.enemies
+      .getChildren()
+      .filter((e) => e.active && e.getData("type") === "chaser");
     if (chasers.length < 4) {
       const cfg = this.rooms[this.roomIndex];
-      const c = this.enemies.create(this.scale.width * (0.3 + Math.random() * 0.4), this.scale.height * 0.7, 'enemy');
+      const c = this.enemies.create(
+        this.scale.width * (0.3 + Math.random() * 0.4),
+        this.scale.height * 0.7,
+        "enemy",
+      );
       c.setCollideWorldBounds(true);
-      c.setData('hp', cfg.chaserHP);
-      c.setData('type', 'chaser');
-      c.setData('speed', cfg.chaserSpeed);
+      c.setData("hp", cfg.chaserHP);
+      c.setData("type", "chaser");
+      c.setData("speed", cfg.chaserSpeed);
       if (c.body) c.body.allowGravity = false;
     }
     this.time.delayedCall(160, () => {
@@ -840,15 +1163,22 @@ export default class GameScene extends Phaser.Scene {
   }
 
   updateBossBar() {
-    const boss = this.enemies.getChildren().find((e) => e.active && e.getData('type') === 'boss');
+    const boss = this.enemies
+      .getChildren()
+      .find((e) => e.active && e.getData("type") === "boss");
     if (!boss) {
       this.hideBossBar();
       return;
     }
-    const frac = Math.max((boss.getData('hp') ?? 1) / (boss.getData('maxHP') ?? 1), 0);
+    const frac = Math.max(
+      (boss.getData("hp") ?? 1) / (boss.getData("maxHP") ?? 1),
+      0,
+    );
     this.bossBarFill.displayWidth = Math.max(320 * frac, 0.001);
-    const phase = boss.getData('phase') ?? 1;
-    this.bossBarFill.setFillStyle(phase === 3 ? 0xef4444 : phase === 2 ? 0xfb923c : 0xa855f7);
+    const phase = boss.getData("phase") ?? 1;
+    this.bossBarFill.setFillStyle(
+      phase === 3 ? 0xef4444 : phase === 2 ? 0xfb923c : 0xa855f7,
+    );
   }
 
   spawnRoom(i) {
@@ -856,20 +1186,20 @@ export default class GameScene extends Phaser.Scene {
     const H = this.scale.height;
     const cfg = this.rooms[i];
     cfg.chasers.forEach(([fx, fy]) => {
-      const e = this.enemies.create(W * fx, H * fy, 'enemy');
+      const e = this.enemies.create(W * fx, H * fy, "enemy");
       e.setCollideWorldBounds(true);
-      e.setData('hp', cfg.chaserHP);
-      e.setData('type', 'chaser');
-      e.setData('speed', cfg.chaserSpeed);
+      e.setData("hp", cfg.chaserHP);
+      e.setData("type", "chaser");
+      e.setData("speed", cfg.chaserSpeed);
       if (e.body) e.body.allowGravity = false;
     });
     cfg.shooters.forEach(([fx, fy]) => {
-      const s = this.enemies.create(W * fx, H * fy, 'shooter');
+      const s = this.enemies.create(W * fx, H * fy, "shooter");
       s.setCollideWorldBounds(true);
-      s.setData('hp', cfg.shooterHP);
-      s.setData('type', 'shooter');
-      s.setData('pattern', 0);
-      s.setData('spiral', Math.random() * Math.PI * 2);
+      s.setData("hp", cfg.shooterHP);
+      s.setData("type", "shooter");
+      s.setData("pattern", 0);
+      s.setData("spiral", Math.random() * Math.PI * 2);
       if (s.body) {
         s.body.allowGravity = false;
         s.body.setImmovable(true);
@@ -877,22 +1207,33 @@ export default class GameScene extends Phaser.Scene {
     });
     if (cfg.boss) {
       const [fx, fy] = cfg.boss.pos;
-      const b = this.enemies.create(W * fx, H * fy, 'boss');
+      const b = this.enemies.create(W * fx, H * fy, "boss");
       b.setScale(1.7);
       b.setCollideWorldBounds(true);
-      b.setData('hp', cfg.boss.hp);
-      b.setData('maxHP', cfg.boss.hp);
-      b.setData('type', 'boss');
-      b.setData('pattern', 0);
-      b.setData('spiral', Math.random() * Math.PI * 2);
-      b.setData('phase', 1);
+      b.setData("hp", cfg.boss.hp);
+      b.setData("maxHP", cfg.boss.hp);
+      b.setData("type", "boss");
+      b.setData("pattern", 0);
+      b.setData("spiral", Math.random() * Math.PI * 2);
+      b.setData("phase", 1);
       if (b.body) {
         b.body.allowGravity = false;
         b.body.setImmovable(true);
       }
       this.showBossBar();
-      const intro = this.add.text(W / 2, H / 2 - 60, 'LE GRAND MAGE VOUS DÉFIE !', { fontSize: '26px', color: '#c084fc' }).setOrigin(0.5).setScrollFactor(0);
-      this.tweens.add({ targets: intro, alpha: 0, duration: 2200, onComplete: () => intro.destroy() });
+      const intro = this.add
+        .text(W / 2, H / 2 - 60, "LE GRAND MAGE VOUS DÉFIE !", {
+          fontSize: "26px",
+          color: "#c084fc",
+        })
+        .setOrigin(0.5)
+        .setScrollFactor(0);
+      this.tweens.add({
+        targets: intro,
+        alpha: 0,
+        duration: 2200,
+        onComplete: () => intro.destroy(),
+      });
     }
     if (this.shooterTimer) this.shooterTimer.delay = cfg.interval;
   }
@@ -901,9 +1242,17 @@ export default class GameScene extends Phaser.Scene {
     if (this.hasWon || this.gameOver) return;
     if (this.roomIndex >= this.rooms.length - 1) {
       this.hasWon = true;
-      const label = this.rooms[this.roomIndex].boss ? 'BOSS VAINCU — RUN TERMINÉ ! (R pour rejouer)' : 'RUN TERMINÉ ! (R pour rejouer)';
-      sfx('win');
-      this.winText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 120, label, { fontSize: '26px', color: '#0f0' }).setOrigin(0.5).setScrollFactor(0);
+      const label = this.rooms[this.roomIndex].boss
+        ? "BOSS VAINCU — RUN TERMINÉ ! (R pour rejouer)"
+        : "RUN TERMINÉ ! (R pour rejouer)";
+      sfx("win");
+      this.winText = this.add
+        .text(this.scale.width / 2, this.scale.height / 2 - 120, label, {
+          fontSize: "26px",
+          color: "#0f0",
+        })
+        .setOrigin(0.5)
+        .setScrollFactor(0);
       this.physics.pause();
       this.creditRun();
       this.showShop();
@@ -928,7 +1277,10 @@ export default class GameScene extends Phaser.Scene {
     this.shopOpen = true;
     const W = this.scale.width;
     const H = this.scale.height;
-    this.shopBg = this.add.rectangle(W / 2, H / 2 + 60, 620, 300, 0x0a0a18, 0.93).setScrollFactor(0).setDepth(50);
+    this.shopBg = this.add
+      .rectangle(W / 2, H / 2 + 60, 620, 300, 0x0a0a18, 0.93)
+      .setScrollFactor(0)
+      .setDepth(50);
     this.shopBg.setStrokeStyle(2, 0xc084fc);
     this.refreshShop();
   }
@@ -941,21 +1293,33 @@ export default class GameScene extends Phaser.Scene {
     const H = this.scale.height;
     const cx = W / 2;
     const top = H / 2 - 50;
-    const mk = (str, y, size = 20, color = '#fff') => {
-      const t = this.add.text(cx, y, str, { fontSize: `${size}px`, color }).setOrigin(0.5).setScrollFactor(0).setDepth(51);
+    const mk = (str, y, size = 20, color = "#fff") => {
+      const t = this.add
+        .text(cx, y, str, { fontSize: `${size}px`, color })
+        .setOrigin(0.5)
+        .setScrollFactor(0)
+        .setDepth(51);
       this.shopLines.push(t);
       return t;
     };
-    mk('— BOUTIQUE (R pour relancer) —', top, 22, '#f0abfc');
-    mk(`◆ Éclats : ${metaStats().shards}  (+${this.runShards} ce run)`, top + 32, 20, '#fde047');
+    mk("— BOUTIQUE (R pour relancer) —", top, 22, "#f0abfc");
+    mk("_ JUROL IS THE BEST");
+    mk(
+      `◆ Éclats : ${metaStats().shards}  (+${this.runShards} ce run)`,
+      top + 32,
+      20,
+      "#fde047",
+    );
     UPGRADES.forEach((def, i) => {
       const lvl = levelOf(def.id);
       const cost = costOf(def.id);
-      const right = lvl >= def.max ? 'MAX' : `${cost} ◆`;
+      const right = lvl >= def.max ? "MAX" : `${cost} ◆`;
       const line = `${i + 1}. ${def.name} Nv${lvl} — ${def.desc} — ${right}`;
-      this.shopUpgradeTexts.push(mk(line, top + 64 + i * 30, 20, lvl >= def.max ? '#64748b' : '#fff'));
+      this.shopUpgradeTexts.push(
+        mk(line, top + 64 + i * 30, 20, lvl >= def.max ? "#64748b" : "#fff"),
+      );
     });
-    mk('Touches 1-4 pour acheter', top + 64 + 4 * 30 + 8, 18, '#94a3b8');
+    mk("Touches 1-4 pour acheter", top + 64 + 4 * 30 + 8, 18, "#94a3b8");
   }
 
   buyFromShop(i) {
@@ -963,30 +1327,49 @@ export default class GameScene extends Phaser.Scene {
     if (!def || !this.shopOpen) return;
     const res = buyUpgrade(def.id);
     if (res.ok) {
-      sfx('chest');
+      sfx("chest");
       this.refreshShop();
     } else if (this.shopUpgradeTexts && this.shopUpgradeTexts[i]) {
       const t = this.shopUpgradeTexts[i];
-      this.tweens.add({ targets: t, alpha: 0.2, duration: 90, yoyo: true, repeat: 3, onComplete: () => t.setAlpha(1) });
+      this.tweens.add({
+        targets: t,
+        alpha: 0.2,
+        duration: 90,
+        yoyo: true,
+        repeat: 3,
+        onComplete: () => t.setAlpha(1),
+      });
     }
   }
 
   enterDoor() {
-    if (!this.doorOpen || this.transitioning || this.gameOver || this.hasWon) return;
+    if (!this.doorOpen || this.transitioning || this.gameOver || this.hasWon)
+      return;
     this.transitioning = true;
-    sfx('door');
+    sfx("door");
     // Sécurise la traversée : plus aucune balle, invincibilité temporaire
-    this.enemyBullets.getChildren().slice().forEach((b) => b.destroy());
+    this.enemyBullets
+      .getChildren()
+      .slice()
+      .forEach((b) => b.destroy());
     this.invincibleUntil = this.time.now + 1500;
     this.cameras.main.fadeOut(250);
     this.time.delayedCall(260, () => {
       this.roomIndex += 1;
-      this.bullets.getChildren().slice().forEach((b) => b.destroy());
-      this.enemyBullets.getChildren().slice().forEach((b) => b.destroy());
-      this.player.setPosition(this.scale.width / 2, this.scale.height - 100).setVelocity(0, 0);
+      this.bullets
+        .getChildren()
+        .slice()
+        .forEach((b) => b.destroy());
+      this.enemyBullets
+        .getChildren()
+        .slice()
+        .forEach((b) => b.destroy());
+      this.player
+        .setPosition(this.scale.width / 2, this.scale.height - 100)
+        .setVelocity(0, 0);
       // Récompenses de salle (plafonnées)
       this.lives = Math.min(this.lives + 1, this.maxLives);
-      this.livesText.setText('Vies: ' + this.lives);
+      this.livesText.setText("Vies: " + this.lives);
       this.setDanger(false);
       this.blanks = Math.min(this.blanks + 1, this.maxBlanks);
       this.blanksText.setText(`Blanks: ${this.blanks} [E]`);
@@ -996,7 +1379,9 @@ export default class GameScene extends Phaser.Scene {
       this.syncWeaponHUD();
       this.spawnRoom(this.roomIndex);
       this.spawnChestForRoom(this.roomIndex);
-      this.roomText.setText(`SALLE ${this.roomIndex + 1}/3 · #${this.seedShort}`);
+      this.roomText.setText(
+        `SALLE ${this.roomIndex + 1}/3 · #${this.seedShort}`,
+      );
       this.doorOpen = false;
       this.doorText.setVisible(false);
       this.transitioning = false;
@@ -1016,12 +1401,12 @@ export default class GameScene extends Phaser.Scene {
     }
     if (this.time.now < this.invincibleUntil) return;
     this.lives -= 1;
-    this.livesText.setText('Vies: ' + this.lives);
+    this.livesText.setText("Vies: " + this.lives);
     this.player.setTint(0xffffff).setTintMode(Phaser.TintModes.FILL);
     this.time.delayedCall(150, () => {
       if (this.player.active) this.player.clearTint();
     });
-    sfx('playerHurt');
+    sfx("playerHurt");
     this.burst(this.player.x, this.player.y, 0xff3333, 8, 180);
     this.setDanger(this.lives === 1);
     // Petite invincibilité post-hit pour éviter la mort instantanée
@@ -1030,8 +1415,16 @@ export default class GameScene extends Phaser.Scene {
       this.gameOver = true;
       this.closeChoice();
       this.physics.pause();
-      sfx('lose');
-      this.loseText = this.add.text(this.scale.width / 2, this.scale.height / 2 - 120, 'GAME OVER (R pour rejouer)', { fontSize: '28px', color: '#f00' }).setOrigin(0.5).setScrollFactor(0);
+      sfx("lose");
+      this.loseText = this.add
+        .text(
+          this.scale.width / 2,
+          this.scale.height / 2 - 120,
+          "GAME OVER (R pour rejouer)",
+          { fontSize: "28px", color: "#f00" },
+        )
+        .setOrigin(0.5)
+        .setScrollFactor(0);
       this.creditRun();
       this.showShop();
     }

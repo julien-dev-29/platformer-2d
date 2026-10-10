@@ -50,7 +50,7 @@ export function generateRun(seed) {
   const shooters = (n) =>
     scatter(rng, n, 0.2, 0.8, 0.15, 0.3, [spawn], 0.2);
 
-  return [
+  const rooms = [
     {
       chasers: chasers(2 + (rng() < 0.5 ? 1 : 0)),
       chaserSpeed: 100,
@@ -76,4 +76,12 @@ export function generateRun(seed) {
       interval: jit(1000),
     },
   ];
+  const s2weapons = ['rail', 'grenades'];
+  const s2passives = ['crit', 'boots', 'heart'];
+  rooms.loot = {
+    s1: ['shotgun', 'smg'],
+    s2weapon: s2weapons[Math.floor(rng() * s2weapons.length)],
+    s2passive: s2passives[Math.floor(rng() * s2passives.length)],
+  };
+  return rooms;
 }

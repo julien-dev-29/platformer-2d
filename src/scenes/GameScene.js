@@ -109,6 +109,7 @@ export default class GameScene extends Phaser.Scene {
     this.ammoText = this.add.text(16, 88, `Munitions: 6/6`, { fontSize: '20px', color: '#fff' }).setScrollFactor(0);
     this.weaponText = this.add.text(16, 114, 'PISTOLET [X]', { fontSize: '20px', color: '#7dd3fc' }).setScrollFactor(0);
     this.blanksText = this.add.text(16, 140, `Blanks: ${this.blanks} [E]`, { fontSize: '20px', color: '#f0abfc' }).setScrollFactor(0);
+    this.passiveText = this.add.text(16, 166, 'Passif: —', { fontSize: '20px', color: '#a3e635' }).setScrollFactor(0);
     this.shardsText = this.add.text(W - 16, 62, `◆ ${meta.shards}`, { fontSize: '20px', color: '#fde047' }).setOrigin(1, 0).setScrollFactor(0);
     this.roomText = this.add.text(W - 16, 36, `SALLE 1/3 · #${this.seedShort}`, { fontSize: '20px', color: '#fdba74' }).setOrigin(1, 0).setScrollFactor(0);
     this.doorText = this.add.text(W / 2, 52, '↑ PORTE OUVERTE — MONTE ↑', { fontSize: '20px', color: '#4ade80' }).setOrigin(0.5).setVisible(false).setScrollFactor(0);
@@ -195,6 +196,14 @@ export default class GameScene extends Phaser.Scene {
     if (this.roomText) this.roomText.setPosition(W - 16, 36);
     if (this.shardsText) this.shardsText.setPosition(W - 16, 62);
     if (this.soundText) this.soundText.setPosition(W - 16, H - 16);
+    if (this.passiveText) this.passiveText.setPosition(16, 166);
+    if (this.choiceOpen && this.choiceBg && this.choiceLines) {
+      const cx = W / 2, cy = H / 2;
+      this.choiceBg.setPosition(cx, cy);
+      if (this.choiceLines[0]) this.choiceLines[0].setPosition(cx, cy - 50);
+      if (this.choiceLines[1]) this.choiceLines[1].setPosition(cx, cy - 10);
+      if (this.choiceLines[2]) this.choiceLines[2].setPosition(cx, cy + 25);
+    }
     if (this.bossBarBg) this.bossBarBg.setPosition(W / 2, 22);
     if (this.bossBarFill) this.bossBarFill.setPosition(W / 2 - 160, 22);
     if (this.bossBarLabel) this.bossBarLabel.setPosition(W / 2, 22);
@@ -358,6 +367,7 @@ export default class GameScene extends Phaser.Scene {
   }
 
   startDodge(dx, dy, time) {
+    if (this.choiceOpen) return;
     if (this.isDodging || this.gameOver || this.hasWon) return;
     this.isDodging = true;
     this.dashHit = new Set();
@@ -470,9 +480,15 @@ export default class GameScene extends Phaser.Scene {
     this.syncWeaponHUD();
   }
 
-  applyPassive(id) { this.passive = id; }
+  applyPassive(id) {
+    this.passive = id;
+    if (id === 'boots') this.playerSpeed = Math.round(this.playerSpeed * 1.12);
+    if (id === 'heart') { this.maxLives += 1; this.lives = Math.min(this.lives + 1, this.maxLives); this.livesText.setText('Vies: ' + this.lives); }
+    this.passiveText.setText(`Passif: ${PASSIVES[id].name}`);
+  }
 
   fireBlank() {
+    if (this.choiceOpen) return;
     if (this.gameOver || this.hasWon) return;
     if (this.physics.world.isPaused) return;
     if (this.blanks <= 0) {
@@ -690,7 +706,12 @@ export default class GameScene extends Phaser.Scene {
 
   damageEnemy(enemy, dmg = 1) {
     if (!enemy.active || this.hasWon) return;
-    const hp = (enemy.getData('hp') ?? 2) - dmg;
+    let final = dmg;
+    if (this.passive === 'crit' && Math.random() < 0.15) {
+      final = dmg * 2;
+      this.floatText(enemy.x, enemy.y, 'CRIT', '#fde047');
+    }
+    const hp = (enemy.getData('hp') ?? 2) - final;
     const isBoss = enemy.getData('type') === 'boss';
     if (hp <= 0) {
       const ex = enemy.x;

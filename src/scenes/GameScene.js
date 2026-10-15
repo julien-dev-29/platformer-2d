@@ -6,10 +6,13 @@ import {
   buyUpgrade,
   costOf,
   levelOf,
+  loadMeta,
   metaStats,
 } from "../meta.js";
 import { generateRun, seedString } from "../rng.js";
 import { WEAPONS, PASSIVES } from "../weapons.js";
+import { EffectsSystem } from "../system/effects.js";
+import { RunState } from "../state/runState.js";
 
 export default class GameScene extends Phaser.Scene {
   constructor() {
@@ -44,6 +47,8 @@ export default class GameScene extends Phaser.Scene {
   }
 
   create() {
+    this.fx = new EffectsSystem(this);
+    this.run = new RunState(metaStats())
     const W = this.scale.width;
     const H = this.scale.height;
     this.physics.world.gravity.y = 0;
@@ -86,22 +91,6 @@ export default class GameScene extends Phaser.Scene {
     this.score = 0;
     this.hasWon = false;
     this.gameOver = false;
-    // Stats de méta-progression (reset complet à chaque run)
-    const meta = metaStats();
-    this.lives = meta.lives;
-    this.maxLives = meta.maxLives;
-    this.blanks = meta.blanks;
-    this.dodgeInvincibleTime = Math.round(300 * meta.dodgeMul);
-    this.reloadMul = meta.reloadMul;
-    this.shopOpen = false;
-    this.shardsCredited = false;
-    this.runShards = 0;
-    this.roomIndex = 0;
-    this.doorOpen = false;
-    this.transitioning = false;
-    this.patternIndex = 0;
-    this.spiralAngle = 0;
-    this.blanks = 2;
     // Reset armes (le restart ne repasse pas par le constructor)
     this.currentWeapon = "pistol";
     this.ammoByWeapon = { pistol: 6 };
@@ -146,7 +135,7 @@ export default class GameScene extends Phaser.Scene {
       .text(16, 166, "Passif: —", { fontSize: "20px", color: "#a3e635" })
       .setScrollFactor(0);
     this.shardsText = this.add
-      .text(W - 16, 62, `◆ ${meta.shards}`, {
+      .text(W - 16, 62, `◆ ${loadMeta().shards}`, {
         fontSize: "20px",
         color: "#fde047",
       })
@@ -504,53 +493,6 @@ export default class GameScene extends Phaser.Scene {
     });
   }
 
-  burst(x, y, tint, n = 12, speed = 220) {
-    const p = this.add.particles(x, y, "spark", {
-      speed: { min: speed * 0.35, max: speed },
-      lifespan: 420,
-      quantity: n,
-      scale: { start: 1.4, end: 0 },
-      tint,
-      blendMode: "ADD",
-      emitting: false,
-    });
-    p.explode(n, x, y);
-    this.time.delayedCall(650, () => p.destroy());
-  }
-
-  floatText(x, y, str, color = "#fde047") {
-    const t = this.add
-      .text(x, y - 12, str, { fontSize: "18px", color })
-      .setOrigin(0.5)
-      .setScrollFactor(0);
-    this.tweens.add({
-      targets: t,
-      y: y - 44,
-      alpha: 0,
-      duration: 750,
-      onComplete: () => t.destroy(),
-    });
-  }
-
-  hitStop(ms) {
-    if (this.hasWon || this.gameOver || this.transitioning || this.hitStopping)
-      return;
-    this.hitStopping = true;
-    this.physics.pause();
-    this.time.delayedCall(ms, () => {
-      this.hitStopping = false;
-      if (!this.hasWon && !this.gameOver) this.physics.resume();
-    });
-  }
-
-  setDanger(on) {
-    if (on === this.dangerSlow) return;
-    this.dangerSlow = on;
-    this.time.timeScale = on ? 0.55 : 1;
-    this.physics.world.timeScale = on ? 0.55 : 1;
-    this.livesText.setColor(on ? "#ef4444" : "#ffffff");
-  }
-
   startDodge(dx, dy, time) {
     if (this.choiceOpen) return;
     if (this.isDodging || this.gameOver || this.hasWon) return;
@@ -573,14 +515,7 @@ export default class GameScene extends Phaser.Scene {
     return this.weapons[this.currentWeapon];
   }
 
-  syncWeaponHUD() {
-    const st = WEAPONS[this.currentWeapon];
-    const backup = this.unlocked.find((u) => u !== this.currentWeapon);
-    this.ammoText.setText(`Munitions: ${this.ammo}/${st.magSize}`);
-    this.weaponText.setText(
-      backup ? `${st.name} [X] + ${WEAPONS[backup].name}` : `${st.name} [X]`,
-    );
-  }
+
 
   switchWeapon() {
     if (this.gameOver || this.hasWon || this.reloading || this.choiceOpen)
@@ -779,7 +714,7 @@ export default class GameScene extends Phaser.Scene {
       duration: 450,
       onComplete: () => ring.destroy(),
     });
-    this.burst(this.player.x, this.player.y, 0xffffff, 24, 320);
+    this.fx.burst(this.player.x, this.player.y, 0xffffff, 24, 320);
     this.enemyBullets
       .getChildren()
       .slice()
@@ -1407,7 +1342,7 @@ export default class GameScene extends Phaser.Scene {
       if (this.player.active) this.player.clearTint();
     });
     sfx("playerHurt");
-    this.burst(this.player.x, this.player.y, 0xff3333, 8, 180);
+    this.fx.burst(this.player.x, this.player.y, 0xff3333, 8, 180);
     this.setDanger(this.lives === 1);
     // Petite invincibilité post-hit pour éviter la mort instantanée
     this.invincibleUntil = this.time.now + 1000;
